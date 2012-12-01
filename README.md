@@ -1,4 +1,5 @@
 mongo-php-driver-plus
 =====================
 
-DriverPlus
+PHP Mongo Write Policy Framework to deal with MongoDB ReplicaSet failovers.
+
