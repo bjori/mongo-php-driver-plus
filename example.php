@@ -5,6 +5,17 @@ require __DIR__ . "/lib/MongoWriteConfirmationPolicyCleanup.php";
 require __DIR__ . "/lib/MongoWriteConfirmationPolicyIgnore.php";
 require __DIR__ . "/lib/MongoWriter.php";
 
+function logWarning($message) {
+    echo "=========================\n";
+    echo "WARNING: ", $message, "\n";
+    echo "=========================\n";
+}
+function logError($message, $errorDocument) {
+    echo "=========================\n";
+    echo $message, "\n";
+    var_dump($errorDocument);
+    echo "=========================\n";
+}
 $opts = array(
     "readPreference"     => MongoClient::RP_PRIMARY_PREFERRED,
     "readPreferenceTags" => array("dc:ny", "dc:sf", ""),
@@ -15,6 +26,7 @@ $opts = array(
 $mc = new MongoClient("primary,secondary", $opts);
 $articles = $mc->selectCollection("blogs", "articles");
 
+$mw = new MongoWriter(new MongoWriteConfirmationPolicyCleanup(3, "logWarning", "logError"));
 do {
     // Get a new ID on each run so we don't update the same document
     $article = array(
@@ -25,7 +37,6 @@ do {
         "tags"    => array("mongodb", "replicaset", "failover"),
     );
 
-    $mw = new MongoWriter(new MongoWriteConfirmationPolicyCleanup);
     $success = $mw->insert($articles, $article);
     if ($success) {
         echo "Data Written successfully\n";

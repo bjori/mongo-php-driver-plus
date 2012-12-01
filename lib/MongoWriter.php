@@ -14,6 +14,9 @@ class MongoWriter implements MongoWriteConfirmation {
     const EXCEPTION_CODE_NO_MASTER = 10058;
 
     protected $policy;
+    protected $retryData = array();
+
+
     function __construct(MongoWriteConfirmationPolicy $policy) {
         $this->setPolicy($policy);
     }
@@ -24,9 +27,23 @@ class MongoWriter implements MongoWriteConfirmation {
         $this->policy = $policy;
         return $this;
     }
+
     function insert(MongoCollection $collection, $document, array $options = array()) {
         return $this->_write(self::WRITE_INSERT, $collection, $document, $options);
     }
+    function save(MongoCollection $collection, $document, array $options = array()) {
+        return $this->_write(self::WRITE_SAVE, $collection, $document, $options);
+    }
+    function remove(MongoCollection $collection, $document, array $options = array()) {
+        return $this->_write(self::WRITE_REMOVE, $collection, $document, $options);
+    }
+    function retry(MongoWriteConfirmationPolicy $oneTimePolicy = null) {
+        return $this->_attempt($this->retryData[0], $oneTimePolicy);
+    }
+    function rollback(MongoWriteConfirmationPolicy $oneTimePolicy = null) {
+        return $this->_attempt(self::WRITE_REMOVE, $oneTimePolicy);
+    }
+
     protected function _write($store, MongoCollection $collection , $document, array $options = array()) {
         $this->retryData = array($store, $collection, $document, $options);
 
@@ -60,12 +77,6 @@ class MongoWriter implements MongoWriteConfirmation {
                 return $this->getPolicy()->onFailure($this);
             }
         }
-    }
-    function retry(MongoWriteConfirmationPolicy $oneTimePolicy = null) {
-        return $this->_attempt($this->retryData[0], $oneTimePolicy);
-    }
-    function rollback(MongoWriteConfirmationPolicy $oneTimePolicy = null) {
-        return $this->_attempt(self::WRITE_REMOVE, $oneTimePolicy);
     }
     protected function _attempt($operation, MongoWriteConfirmationPolicy $oneTimePolicy = null) {
         if ($oneTimePolicy) {
